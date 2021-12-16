@@ -49,12 +49,12 @@ class VOCDataset(torch.utils.data.Dataset):
             height_cell = self.S * height
 
             if label_matrix[i, j, 20] == 0:
-                label_matrix[i, j, 1] = 1
+                label_matrix[i, j, 1] = 1 # mark object as seen
                 box_coords = torch.tensor(
                     [x_cell, y_cell, width_cell, height_cell]
                 )
                 label_matrix[i, j, 21:25] = box_coords
-                label_matrix[i, j, class_label] = 1
+                label_matrix[i, j, class_label] = 1 # set one-hot enc. for obj.
 
         return image, label_matrix
 

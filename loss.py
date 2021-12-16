@@ -25,7 +25,7 @@ class YoloLoss(nn.Module):
         # 21-25: four bounding-box values for first box
         # 26-29: four bounding-box values for second box
         iou_b1 = intersection_over_union(preds[..., 21:25], target[..., 21:25])
-        iou_b2 = intersection_over_union(preds[..., 26:29], target[..., 26:29])
+        iou_b2 = intersection_over_union(preds[..., 26:30], target[..., 21:25])
 
         ious = torch.cat([iou_b1.unsqueeze(0), iou_b2.unsqueeze(0)], dim=0)
         iou_maxes, best_box = torch.max(ious, dim=0)

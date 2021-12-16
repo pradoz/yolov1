@@ -7,7 +7,7 @@ from collections import Counter
 
 
 
-def intersection_over_union(boxes_preds, boxes_labels): #, box_format='midpoint'):
+def intersection_over_union(boxes_preds, boxes_labels, box_format='midpoint'):
     '''
     This function calculates intersection over union (iou) given pred boxes
     and target boxes.
@@ -19,24 +19,25 @@ def intersection_over_union(boxes_preds, boxes_labels): #, box_format='midpoint'
         tensor: Intersection over union for all examples
     '''
     # if box_format == 'midpoint':
-    box1_x1 = boxes_preds[..., 0:1] - boxes_preds[..., 2:3] / 2
-    box1_y1 = boxes_preds[..., 1:2] - boxes_preds[..., 3:4] / 2
-    box1_x2 = boxes_preds[..., 0:1] + boxes_preds[..., 2:3] / 2
-    box1_y2 = boxes_preds[..., 1:2] + boxes_preds[..., 3:4] / 2
-    box2_x1 = boxes_labels[..., 0:1] - boxes_labels[..., 2:3] / 2
-    box2_y1 = boxes_labels[..., 1:2] - boxes_labels[..., 3:4] / 2
-    box2_x2 = boxes_labels[..., 0:1] + boxes_labels[..., 2:3] / 2
-    box2_y2 = boxes_labels[..., 1:2] + boxes_labels[..., 3:4] / 2
+    if box_format == 'midpoint':
+        box1_x1 = boxes_preds[..., 0:1] - boxes_preds[..., 2:3] / 2
+        box1_y1 = boxes_preds[..., 1:2] - boxes_preds[..., 3:4] / 2
+        box1_x2 = boxes_preds[..., 0:1] + boxes_preds[..., 2:3] / 2
+        box1_y2 = boxes_preds[..., 1:2] + boxes_preds[..., 3:4] / 2
+        box2_x1 = boxes_labels[..., 0:1] - boxes_labels[..., 2:3] / 2
+        box2_y1 = boxes_labels[..., 1:2] - boxes_labels[..., 3:4] / 2
+        box2_x2 = boxes_labels[..., 0:1] + boxes_labels[..., 2:3] / 2
+        box2_y2 = boxes_labels[..., 1:2] + boxes_labels[..., 3:4] / 2
 
-    # if box_format == 'corners':
-    #     box1_x1 = boxes_preds[..., 0:1]
-    #     box1_y1 = boxes_preds[..., 1:2]
-    #     box1_x2 = boxes_preds[..., 2:3]
-    #     box1_y2 = boxes_preds[..., 3:4]
-    #     box2_x1 = boxes_labels[..., 0:1]
-    #     box2_y1 = boxes_labels[..., 1:2]
-    #     box2_x2 = boxes_labels[..., 2:3]
-    #     box2_y2 = boxes_labels[..., 3:4]
+    if box_format == 'corners':
+        box1_x1 = boxes_preds[..., 0:1]
+        box1_y1 = boxes_preds[..., 1:2]
+        box1_x2 = boxes_preds[..., 2:3]
+        box1_y2 = boxes_preds[..., 3:4]
+        box2_x1 = boxes_labels[..., 0:1]
+        box2_y1 = boxes_labels[..., 1:2]
+        box2_x2 = boxes_labels[..., 2:3]
+        box2_y2 = boxes_labels[..., 3:4]
 
     x1 = torch.max(box1_x1, box2_x1)
     y1 = torch.max(box1_y1, box2_y1)
@@ -66,8 +67,15 @@ def non_max_suppression(bboxes, iou_threshold, threshold, box_format="corners"):
 
     assert type(bboxes) == list
 
+    print('CALLED non_max_suppression()!!!')
+    print(f'bboxes (INIT): {bboxes}')
+    print(f'threshold: {threshold}')
+    print(f'iou_threshold: {iou_threshold}')
+
     bboxes = [box for box in bboxes if box[1] > threshold]
+    print(f'bboxes (MID): {bboxes}')
     bboxes = sorted(bboxes, key=lambda x: x[1], reverse=True)
+    print(f'bboxes (FINAL): {bboxes}')
     bboxes_after_nms = []
 
     while bboxes:
@@ -236,8 +244,9 @@ def get_bboxes(
     threshold,
     pred_format="cells",
     box_format="midpoint",
-    device="cuda",
+    device='cpu',#"cuda",
 ):
+    print('CALLING get_bboxes()...')
     all_pred_boxes = []
     all_true_boxes = []
 
@@ -246,15 +255,23 @@ def get_bboxes(
     train_idx = 0
 
     for batch_idx, (x, labels) in enumerate(loader):
+        print(f'batch_idx: {batch_idx}')
         x = x.to(device)
         labels = labels.to(device)
+        # print(f'labels: {labels}')
 
         with torch.no_grad():
             predictions = model(x)
+            # print(f'predictions: {predictions}')
 
         batch_size = x.shape[0]
         true_bboxes = cellboxes_to_boxes(labels)
         bboxes = cellboxes_to_boxes(predictions)
+
+        print(f'batch_size: {batch_size}')
+        print(f'x.shape: {x.shape}')
+        # print(f'true_bboxes: {true_bboxes}')
+        # print(f'bboxes: {bboxes}')
 
         for idx in range(batch_size):
             nms_boxes = non_max_suppression(
@@ -263,6 +280,7 @@ def get_bboxes(
                 threshold=threshold,
                 box_format=box_format,
             )
+            print(f'nms_boxes: {nms_boxes}')
 
 
             #if batch_idx == 0 and idx == 0:
